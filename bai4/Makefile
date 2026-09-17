@@ -1,40 +1,53 @@
-# Tên file đầu ra
-TARGET = firmware
+#include <stdint.h>
 
-# Bối cảnh công cụ biên dịch
-CC = arm-none-eabi-gcc
-OBJCOPY = arm-none-eabi-objcopy
+#define RCC_BASE        0x40021000
+#define GPIOA_BASE      0x40010800
+#define TIM2_BASE       0x40000000
 
-# Cờ biên dịch và Linker
-CFLAGS = -mcpu=cortex-m3 -mthumb -O0 -g -Wall
-LDFLAGS = -T STM32F103C8Tx_FLASH.ld --specs=nosys.specs -nostartfiles
+#define RCC_APB2ENR     *(volatile uint32_t *)(RCC_BASE + 0x18)
+#define RCC_APB1ENR     *(volatile uint32_t *)(RCC_BASE + 0x1C)
 
-# Danh sách các file nguồn (.c và .s)
-SRCS = main.c startup_stm32f103xb.s
-OBJS = $(SRCS:.c=.o)
-OBJS := $(OBJS:.s=.o)
+#define GPIOA_CRL       *(volatile uint32_t *)(GPIOA_BASE + 0x00)
 
-# Target mặc định khi gõ 'make'
-all: $(TARGET).bin
+#define TIM2_CR1        *(volatile uint32_t *)(TIM2_BASE + 0x00)
+#define TIM2_CCMR1      *(volatile uint32_t *)(TIM2_BASE + 0x18)
+#define TIM2_CCMR2      *(volatile uint32_t *)(TIM2_BASE + 0x1C)
+#define TIM2_CCER       *(volatile uint32_t *)(TIM2_BASE + 0x20)
+#define TIM2_PSC        *(volatile uint32_t *)(TIM2_BASE + 0x28)
+#define TIM2_ARR        *(volatile uint32_t *)(TIM2_BASE + 0x2C)
+#define TIM2_CCR1       *(volatile uint32_t *)(TIM2_BASE + 0x34)
+#define TIM2_CCR2       *(volatile uint32_t *)(TIM2_BASE + 0x38)
+#define TIM2_CCR3       *(volatile uint32_t *)(TIM2_BASE + 0x3C)
+#define TIM2_CCR4       *(volatile uint32_t *)(TIM2_BASE + 0x40)
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+__attribute__((used)) void SystemInit(void) {}
 
-%.o: %.s
-	$(CC) $(CFLAGS) -c $< -o $@
+void PWM_Init(void) {
+    RCC_APB2ENR |= (1 << 2);
+    RCC_APB1ENR |= (1 << 0);
 
-$(TARGET).elf: $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) $(LDFLAGS) -o $@
+    GPIOA_CRL &= ~(0xFFFFFFFF);
+    GPIOA_CRL |= (0x0B << 0) | (0x0B << 4) | (0x0B << 8) | (0x0B << 12);
 
-$(TARGET).bin: $(TARGET).elf
-	$(OBJCOPY) -O binary $< $@
+    TIM2_PSC = 7;
+    TIM2_ARR = 999;
 
-# Target nạp code bằng ST-Link V2
-flash: $(TARGET).bin
-	st-flash write $(TARGET).bin 0x08000000
+    TIM2_CCMR1 |= (0x68 << 0) | (0x68 << 8);
+    TIM2_CCMR2 |= (0x68 << 0) | (0x68 << 8);
 
-# Target dọn dẹp các file rác
-clean:
-	rm -f *.o *.elf *.bin
+    TIM2_CCR1 = 100;
+    TIM2_CCR2 = 300;
+    TIM2_CCR3 = 500;
+    TIM2_CCR4 = 700;
 
-.PHONY: all flash clean
+    TIM2_CCER |= (1 << 0) | (1 << 4) | (1 << 8) | (1 << 12);
+
+    TIM2_CR1 |= (1 << 0);
+}
+
+int main(void) {
+    PWM_Init();
+
+    while (1) {
+    }
+}
