@@ -11,7 +11,6 @@
 Reset_Handler:
   ldr   sp, =_estack
 
-/* Copy .data section từ FLASH sang RAM */
   movs  r1, #0
   b     LoopCopyDataInit
 
@@ -29,7 +28,6 @@ LoopCopyDataInit:
   cmp   r2, r3
   bcc   CopyDataInit
 
-/* Xóa bộ nhớ .bss */
   ldr   r2, =_sbss
   ldr   r4, =_ebss
   movs  r3, #0
@@ -42,7 +40,6 @@ LoopFillZerobss:
   cmp   r2, r4
   bcc   FillZerobss
 
-/* Gọi SystemInit và nhảy vào main */
   bl  SystemInit
   bl  main
 
